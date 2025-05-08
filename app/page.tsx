@@ -1,103 +1,134 @@
-import Image from "next/image";
+// app/page.tsx
+'use client';
 
-export default function Home() {
+import { useState, useEffect, FormEvent, useRef } from 'react';
+import styles from './ChatPage.module.css'; // Import CSS module
+
+interface Message {
+  id: string;
+  text: string;
+  timestamp: string;
+  // sender?: string; // Future: for distinguishing users
+}
+
+export default function ChatPage() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const messageListRef = useRef<HTMLDivElement>(null);
+
+  // Function to scroll to the bottom of the message list
+  const scrollToBottom = () => {
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+    }
+  };
+
+  // Fetch messages on component mount
+  useEffect(() => {
+    const fetchMessages = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch('/api/messages');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch messages: ${response.statusText}`);
+        }
+        const data: Message[] = await response.json();
+        // API returns newest first (due to LPUSH), reverse for chronological chat display
+        setMessages(data.reverse());
+      } catch (err: any) {
+        setError(err.message || 'An unknown error occurred');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMessages();
+  }, []);
+
+  // Scroll to bottom when messages change or after initial load
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]); // Rerun when messages array or loading state changes
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim()) {
+      // Optionally show a small inline error or just do nothing
+      return;
+    }
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: newMessage }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to post message: ${response.statusText}`);
+      }
+
+      const postedMessage: Message = await response.json();
+      // Add to the end of the list for chronological display
+      setMessages(prevMessages => [...prevMessages, postedMessage]);
+      setNewMessage(''); // Clear input
+    } catch (err: any) {
+      setSubmitError(err.message || 'An unknown error occurred while posting.');
+      console.error(err);
+      // Consider showing submitError more prominently if needed
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className={styles.chatPageContainer}>
+      <header className={styles.chatHeader}>
+        Redis Chat Room
+      </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      <div className={styles.messageList} ref={messageListRef}>
+        {isLoading && <p className={styles.loading}>Loading messages...</p>}
+        {error && <p className={styles.error}>Error: {error}</p>}
+        {!isLoading && !error && messages.length === 0 && (
+          <p className={styles.noMessages}>No messages yet. Start the conversation!</p>
+        )}
+        {!isLoading && !error && messages.map((msg) => (
+          // For now, all messages are "received". Add logic for "sent" if users are implemented.
+          <div key={msg.id} className={`${styles.messageItem} ${styles.receivedMessage}`}>
+            <p>{msg.text}</p>
+            <small>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit} className={styles.inputArea}>
+        <input
+          type="text"
+          className={styles.inputField}
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          placeholder="Type your message..."
+          disabled={isSubmitting}
+          autoFocus
+        />
+        <button type="submit" className={styles.sendButton} disabled={isSubmitting || !newMessage.trim()}>
+          {isSubmitting ? 'Sending...' : 'Send'}
+        </button>
+      </form>
+      {submitError && <p style={{ color: 'red', textAlign: 'center', padding: '0.5rem' }}>Failed to send: {submitError}</p>}
     </div>
   );
 }

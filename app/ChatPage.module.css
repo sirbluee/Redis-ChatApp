@@ -1,0 +1,122 @@
+/* app/ChatPage.module.css */
+
+.chatPageContainer {
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* Full viewport height */
+    max-width: 700px;
+    margin: auto;
+    border: 1px solid #ccc;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+    overflow: hidden; /* Prevents whole page scroll if content overflows wrongly */
+  }
+  
+  .chatHeader {
+    background-color: #007bff;
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+  }
+  
+  .messageList {
+    flex-grow: 1; /* Takes up available space */
+    overflow-y: auto; /* Scrollable */
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem; /* Space between messages */
+    background-color: #f9f9f9;
+  }
+  
+  .messageItem {
+    padding: 0.6rem 0.9rem;
+    border-radius: 18px; /* Bubble shape */
+    max-width: 75%;
+    word-wrap: break-word; /* Prevent long words from overflowing */
+    line-height: 1.4;
+  }
+  
+  .messageItem p {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.95rem;
+  }
+  
+  .messageItem small {
+    font-size: 0.7rem;
+    color: #777; /* Lighter color for timestamp */
+    display: block;
+    text-align: right; /* Timestamp to the right within the bubble */
+  }
+  
+  /* For this demo, all messages are styled as "received" */
+  .receivedMessage {
+    background-color: #e9e9eb;
+    color: #333;
+    align-self: flex-start; /* Align to the left */
+    border-bottom-left-radius: 4px; /* Slightly less round on one corner for effect */
+  }
+  
+  /* Example for "sent" messages if you implement user-specific messages later */
+  /*
+  .sentMessage {
+    background-color: #007bff;
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .sentMessage small {
+    color: #e0e0e0;
+  }
+  */
+  
+  .inputArea {
+    display: flex;
+    padding: 0.75rem;
+    border-top: 1px solid #ddd;
+    background-color: #fff;
+  }
+  
+  .inputField {
+    flex-grow: 1;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    margin-right: 0.5rem;
+    font-size: 1rem;
+    resize: none; /* If using textarea */
+  }
+  
+  .sendButton {
+    padding: 0.75rem 1.5rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s ease;
+  }
+  
+  .sendButton:hover {
+    background-color: #0056b3;
+  }
+  
+  .sendButton:disabled {
+    background-color: #a0c7e4;
+    cursor: not-allowed;
+  }
+  
+  .loading, .error, .noMessages {
+    text-align: center;
+    padding: 1rem;
+    color: #777;
+  }
+  
+  .error {
+    color: red;
+  }
+  
+  /* Ensure globals.css doesn't interfere too much or reset body margin/padding */
