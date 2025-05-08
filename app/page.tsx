@@ -11,6 +11,11 @@ interface Message {
   // sender?: string; // Future: for distinguishing users
 }
 
+// A type for the expected error structure from our API (for POST errors)
+interface ApiErrorResponse {
+  error: string;
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -36,14 +41,26 @@ export default function ChatPage() {
       try {
         const response = await fetch('/api/messages');
         if (!response.ok) {
-          throw new Error(`Failed to fetch messages: ${response.statusText}`);
+          let errorMsg = `Failed to fetch messages: ${response.statusText}`;
+          try {
+            const errorData: ApiErrorResponse = await response.json();
+            if (errorData && errorData.error) {
+              errorMsg = errorData.error;
+            }
+          } catch { // <--- MODIFIED HERE: No variable binding
+            // Intentionally ignore parsing error, errorMsg remains response.statusText
+          }
+          throw new Error(errorMsg);
         }
         const data: Message[] = await response.json();
-        // API returns newest first (due to LPUSH), reverse for chronological chat display
         setMessages(data.reverse());
-      } catch (err: any) {
-        setError(err.message || 'An unknown error occurred');
-        console.error(err);
+      } catch (err) { 
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('An unknown error occurred while fetching messages.');
+        }
+        console.error('Fetch messages error:', err);
       } finally {
         setIsLoading(false);
       }
@@ -55,12 +72,11 @@ export default function ChatPage() {
   // Scroll to bottom when messages change or after initial load
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isLoading]); // Rerun when messages array or loading state changes
+  }, [messages, isLoading]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) {
-      // Optionally show a small inline error or just do nothing
       return;
     }
     setIsSubmitting(true);
@@ -76,18 +92,20 @@ export default function ChatPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData: ApiErrorResponse = await response.json();
         throw new Error(errorData.error || `Failed to post message: ${response.statusText}`);
       }
 
       const postedMessage: Message = await response.json();
-      // Add to the end of the list for chronological display
       setMessages(prevMessages => [...prevMessages, postedMessage]);
-      setNewMessage(''); // Clear input
-    } catch (err: any) {
-      setSubmitError(err.message || 'An unknown error occurred while posting.');
-      console.error(err);
-      // Consider showing submitError more prominently if needed
+      setNewMessage('');
+    } catch (err) { 
+      if (err instanceof Error) {
+        setSubmitError(err.message);
+      } else {
+        setSubmitError('An unknown error occurred while posting.');
+      }
+      console.error('Submit message error:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -106,7 +124,6 @@ export default function ChatPage() {
           <p className={styles.noMessages}>No messages yet. Start the conversation!</p>
         )}
         {!isLoading && !error && messages.map((msg) => (
-          // For now, all messages are "received". Add logic for "sent" if users are implemented.
           <div key={msg.id} className={`${styles.messageItem} ${styles.receivedMessage}`}>
             <p>{msg.text}</p>
             <small>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>

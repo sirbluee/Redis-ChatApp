@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const MESSAGES_KEY = 'guestbook_messages'; // Key for our Redis list
 
 // GET handler to fetch messages
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const redis = getRedisClient();
     // LRANGE returns messages from newest to oldest if using LPUSH
